@@ -16,26 +16,23 @@ object Graph {
     private val dataset = XYSeriesCollection()
     private val mainSeries = XYSeries("t")
     private val functionLine = XYSeries("Function line")
-    private val constLine = XYSeries("u(t)")
+    private val uLine = XYSeries("u(t)")
+    private val constLine = XYSeries("psi(t)")
 
     // values
     private var h: Int = 0
     private var u0: Int = 0
     private var t0: Int = 0
-    private var t: Int = 0
+    private const val t: Int = 5 // temp
     private var trident: Int = 0
-    private var b: Int = 0
 
     // value for graph length
     private const val T = 40.0
 
-    // function line
-    private fun function(t: Double): Double = 3 * sin(t)
-
     fun drawGraph() {
         askForData()
         initGraphWithValues()
-        println("Производная psi: ${findTridentDerivative()}")
+        println("Производная psi: ${findTridentDerivative(t.toDouble())}")
     }
 
     private fun initGraphWithValues() {
@@ -46,11 +43,12 @@ object Graph {
                     intervalEnd = t.toDouble()
                 )
             ) {
-                constLine.add(point, max(u0, bOfT(t)))
+                constLine.add(point, max(u0.toDouble(), bOfT(t.toDouble())))
             } else {
-                constLine.add(point, min(u0, bOfT(t) + h))
+                constLine.add(point, min(u0.toDouble(), bOfT(t.toDouble()) + h))
             }
-            functionLine.add(point, function(t.toDouble()))
+            uLine.add(point, uOfT(t) { x: Double -> x - 2 })
+            functionLine.add(point, findTridentDerivative(t.toDouble()))
             mainSeries.add(point, 0)
         }
 
@@ -80,29 +78,31 @@ object Graph {
         u0 = readLine()?.toInt() ?: 3
         println("Введите t0: ")
         t0 = readLine()?.toInt() ?: 0
-        println("Введите t: ")
-        t = readLine()?.toInt() ?: 0
         println("Введите psi: ")
         trident = readLine()?.toInt() ?: 1
-        println("Введите sigma: ")
-        // sigma
-        b = readLine()?.toInt() ?: 0
     }
 
     // Fun for derivative (just print it at end)
-    private fun findTridentDerivative(): Int =
-        if (trident > b && trident < (b + h)) {
-            0
-        } else if (trident == b) {
-            max(0, b)
-        } else if (trident == b + h) {
-            max(0, b)
+    private fun findTridentDerivative(t: Double): Double =
+        if (trident > bOfT(t) && trident < (bOfT(t) + h)) {
+            0.0
+        } else if (trident.toDouble() == bOfT(t)) {
+            max(0.0, bOfT(t)).toDouble()
+        } else if (trident.toDouble() == bOfT(t) + h) {
+            min(0.0, bOfT(t))
         } else {
-            -1
+            10.0
         }
 
     // Sigma of t value i guess
-    private fun bOfT(t: Int) = kotlin.math.abs(kotlin.math.abs(t) - 2)
+    private fun bOfT(t: Double): Double = t - 2
+
+    private fun uOfT(t: Int, b: (Double) -> Double) =
+        if (isFunctionIncreasing({ x: Double -> x - 2 }, 0.0, 10.0)) {
+            min(u0.toDouble(), b(t.toDouble()))
+        } else {
+            max(u0.toDouble(), b(t.toDouble() + h))
+        }
 
     private fun isFunctionIncreasing(
         function: (Double) -> Double,
